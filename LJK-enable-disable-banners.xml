@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modification>
+    <id>Enable/Disable Banners</id>
+    <version>1.0</version>
+    <vqmver>2.X</vqmver>
+    <author>Lucas Krupinski - lucasjkr@me.com</author>
+    <comment></comment>
+    
+    <file name="admin/controller/design/banner.php">
+        <operation info="Add data to array">
+            <search position="replace"><![CDATA[$banner_image['sort_order']]]></search>
+            <add><![CDATA[$banner_image['sort_order'],
+                'status'                   => $banner_image['status']
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/model/design/banner.php">
+        <operation info="">
+            <search position="replace"><![CDATA[
+            sort_order = '0'
+]]>
+            </search>
+            <add><![CDATA[sort_order = '0', status = '1']]></add>
+        </operation>
+        <operation info="">
+            <search position="replace"><![CDATA[
+            sort_order = '" . (int)$banner_image['sort_order'] . "'
+]]>
+            </search>
+            <add><![CDATA[
+            sort_order = '" . (int)$banner_image['sort_order'] . "', status = '" . (int)$banner_image['status'] . "'
+]]></add>
+        </operation>
+        <operation info="">
+            <search position="replace"><![CDATA[$banner_image_data[] = array(]]>
+            </search>
+            <add><![CDATA[$banner_image_data[] = array(
+            'status'                   => $banner_image['status'],
+]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/view/template/design/banner_form.tpl">
+        <operation info="Add new column header">
+            <search position="replace"><![CDATA[<?php echo $entry_sort_order; ?></td>]]>
+            </search>
+            <add><![CDATA[ <?php echo $entry_sort_order; ?></td>
+<td class="text-center">Status</td> ]]></add>
+        </operation>
+
+        <operation info="Add new column to each row">
+            <search position="replace"><![CDATA[name="banner_image[<?php echo $image_row; ?>][sort_order]" value="<?php echo $banner_image['sort_order']; ?>" placeholder="<?php echo $entry_sort_order; ?>" class="form-control" /></td>]]>
+            </search>
+            <add><![CDATA[name="banner_image[<?php echo $image_row; ?>][sort_order]" value="<?php echo $banner_image['sort_order']; ?>" placeholder="<?php echo $entry_sort_order; ?>" class="form-control" /></td>
+
+                <td class="text-center">
+                    <div class="radio">
+                        <label>On<input style="float:left;" type="radio" name="banner_image[<?php echo $image_row; ?>][status]" value="1" class="form-control" <?php if($banner_image['status'] === "1" || $banner_image['status'] === NULL) { ?> checked="checked" <?php } ?>/></label>
+                    </div>
+                    <div class="radio">
+                        <label>Off<input type="radio" style="float:left;" name="banner_image[<?php echo $image_row; ?>][status]" value="0" class="form-control" <?php if($banner_image['status'] === "0") { ?> checked <?php } ?>/></label>
+                    </div>
+                </td>
+]]></add>
+        </operation>
+
+        <operation info="Begin commenting out table footer">
+            <search position="replace"><![CDATA[<tfoot>]]>
+            </search>
+            <add><![CDATA[
+<!-- <tfoot>
+]]></add>
+        </operation>
+
+        <operation info="End commenting table footer">
+            <search position="replace"><![CDATA[</tfoot>]]>
+            </search>
+            <add><![CDATA[
+<tfoot>-->
+]]></add>
+        </operation>
+
+        <operation info="Add new div with the add image button">
+            <search position="replace"><![CDATA[</form>]]>
+            </search>
+            <add><![CDATA[
+
+            <table class="table table-striped table-bordered table-hover" style="margin-top: -17px;">
+                <tfoot>
+                   <tr>
+                      <td class="text-right">
+                            <button type="button" onclick="addImage();" data-toggle="tooltip" title="<?php echo $button_banner_add; ?>" class="btn btn-primary">
+                                <i class="fa fa-plus-circle"></i>
+                            </button>
+                      </td>
+                   </tr>
+                </tfoot>
+             </table>
+</form>
+]]></add>
+        </operation>
+
+        <operation info="Modify javascript to add new column">
+            <search position="before"><![CDATA[html += '  <td class="text-left"><button type="button"]]>
+            </search>
+            <add><![CDATA[
+    html += '   <td class="text-center">';
+    html += '       <div class="radio">';
+    html += '           <label>On<input style="float:left;" type="radio" name="banner_image[' + image_row + '][status]" value="1" class="form-control" checked="checked" /></label>';
+    html += '       </div>';
+    html += '       <div class="radio">';
+    html += '           <label>Off<input type="radio" style="float:left;" name="banner_image[' + image_row + '][status]" value="0" class="form-control"/></label>';
+    html += '       </div>';
+    html +=  '  </td>';
+]]></add>
+        </operation>
+
+    </file>
+
+    <file name="catalog/model/design/banner.php">
+        <operation info="Select only active banners (set to either 1 or NULL)">
+            <search position="replace"><![CDATA[ORDER BY bi.sort_order ASC]]></search>
+            <add><![CDATA[
+                 AND (status is NULL or status =1) ORDER BY bi.sort_order ASC
+            ]]></add>
+        </operation>
+    </file>
+
+
+    <file name="admin/model/design/banner.php">
+      <operation info="Add status column to banner table if it doesn't already exist">
+        <search position="after"><![CDATA[class ModelDesignBanner extends Model]]></search>
+        <add>
+    public function __construct($registry) {
+            parent::__construct($registry);
+            if($this->db->query("SHOW COLUMNS FROM " . DB_PREFIX . "banner_image LIKE 'status'")->num_rows == 0) {
+               $this->db->query("ALTER TABLE " . DB_PREFIX . "banner_image ADD COLUMN `status` int(1) DEFAULT '1' COMMENT 'Added by LJK enable disable banners VQMOD'");
+        }
+    }
+        </add>
+     </operation>
+    </file>
+
+    <file name="catalog/model/design/banner.php">
+        <operation info="Add status column to banner table if it doesn't already exist">
+            <search position="after"><![CDATA[class ModelDesignBanner extends Model]]></search>
+            <add>
+                public function __construct($registry) {
+                parent::__construct($registry);
+                if($this->db->query("SHOW COLUMNS FROM " . DB_PREFIX . "banner_image LIKE 'status'")->num_rows == 0) {
+                $this->db->query("ALTER TABLE " . DB_PREFIX . "banner_image ADD COLUMN `status` int(1) DEFAULT '1' COMMENT 'Added by LJK enable disable banners VQMOD'");
+                }
+                }
+            </add>
+        </operation>
+    </file>
+
+
+</modification>
